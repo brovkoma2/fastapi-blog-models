@@ -13,6 +13,7 @@ class PostBase(BaseModel):
 
 class PostCreate(PostBase):
     author_id: int
+    image: Optional[str] = None
 
 
 class PostResponse(PostBase):

@@ -1,40 +1,49 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
-from datetime import datetime
 
-from schemas.comments import CommentCreate, CommentResponse
-from data.storage import storage
+from src.schemas.comments import CommentCreate, CommentResponse
+from src.api.depends import (
+    get_comments_by_post_use_case,
+    get_create_comment_use_case,
+    get_delete_comment_use_case
+)
+from src.domain.comment.use_cases import (
+    GetCommentsByPostUseCase,
+    CreateCommentUseCase,
+    DeleteCommentUseCase
+)
 
 router = APIRouter(prefix="/comments", tags=["Comments"])
 
 
 @router.get("/post/{post_id}", response_model=List[CommentResponse])
-async def get_comments_by_post(post_id: int):
-    return [
-        comment for comment in storage.comments.values()
-        if comment["post_id"] == post_id
-    ]
+async def get_comments_by_post(
+    post_id: int,
+    use_case: GetCommentsByPostUseCase = Depends(get_comments_by_post_use_case)
+):
+    try:
+        return use_case.execute(post_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/", response_model=CommentResponse, status_code=status.HTTP_201_CREATED)
-async def create_comment(comment_data: CommentCreate):
-    comment_id = storage.get_next_id("comments")
-    new_comment = {
-        "id": comment_id,
-        "text": comment_data.text,
-        "post_id": comment_data.post_id,
-        "author_id": comment_data.author_id,
-        "created_at": datetime.now()
-    }
-
-    storage.comments[comment_id] = new_comment
-    return CommentResponse.model_validate(new_comment)
+async def create_comment(
+    comment_data: CommentCreate,
+    author_id: int,
+    use_case: CreateCommentUseCase = Depends(get_create_comment_use_case)
+):
+    try:
+        return use_case.execute(comment_data, author_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete("/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_comment(comment_id: int):
-    if comment_id not in storage.comments:
+async def delete_comment(
+    comment_id: int,
+    use_case: DeleteCommentUseCase = Depends(get_delete_comment_use_case)
+):
+    if not use_case.execute(comment_id):
         raise HTTPException(status_code=404, detail="Comment not found")
-
-    del storage.comments[comment_id]
     return None

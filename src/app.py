@@ -1,14 +1,14 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from api import posts, categories, users, comments
+from src.api import posts, categories, users, comments
 
 
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Blogicum API",
         description="API для блог-платформы Blogicum",
-        version="1.0.0"
+        version="2.0.0"
     )
 
     app.add_middleware(
