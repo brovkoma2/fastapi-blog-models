@@ -1,16 +1,23 @@
+import os
 from contextlib import contextmanager
+from pathlib import Path
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session as SQLAlchemySession
 from sqlalchemy.ext.declarative import declarative_base
 
 
-DJANGO_DB_PATH = "./db.sqlite3"
+env_path = Path(__file__).parent.parent.parent / ".env"
+load_dotenv(env_path)
 
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{DJANGO_DB_PATH}"
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "sqlite:///./db.sqlite3"
+)
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
